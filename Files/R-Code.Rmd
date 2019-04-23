@@ -1,7 +1,7 @@
 ---
-title: "Project 502 Group 4"
+title: "Project"
 date: "September 19, 2018"
-author: "Roli Srivastava,Jing Ru Tan,Yanan Tan,Mengni Tang,Ammara Shariq"
+author: "Roli Srivastava"
 output: word_document
 ---
 
