@@ -1,0 +1,237 @@
+---
+title: "Project 502 Group 4"
+date: "September 19, 2018"
+author: "Roli Srivastava,Jing Ru Tan,Yanan Tan,Mengni Tang,Ammara Shariq"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+download.file("http://www.openintro.org/stat/data/nc.RData", destfile = "nc.RData")
+load("nc.RData")
+library(tidyverse)
+library(stats)
+library(knitr)
+library(sqldf)
+library(ggplot2)
+
+
+```
+load data here
+```{r}
+##you can use json link to download data
+##library("rjson")
+##result <- fromJSON(file = "https://data.cityofnewyork.us/resource/fbkk-fqs7.json")
+##busData <- as.data.frame(result)
+## or download from the link below and convert the file to csv
+## kaggle datasets download -d new-york-city/ny-bus-breakdown-and-delays
+
+busData <-read.csv('C:/MyData/Srikar/Project/ny-bus-breakdown-and-delays/ny-bus-breakdown-and-delays.csv',header= T)
+```
+
+```{r}
+p_test <- function(confidencelevel)
+{
+  c <- confidencelevel
+  alpha <- 1 -(c/100)
+  z <- 1 - (alpha/2)
+  print(z)
+  pvalue = qnorm(abs(z))
+  print(pvalue)
+}
+```
+
+```{r}
+
+# Histogram to show the reasons for delay
+reason <- data.frame(table(busData$Reason))
+
+reason$Percentage_Change <- round((reason$Freq/nrow(busData))*100,digit=2)
+ggplot(reason,aes(x = reorder(reason$Var1,reason$Freq), y = reason$Percentage_Change))+
+  labs(title = "Reason For Delay" , x= "Reasons",y= "Freq")+
+  geom_bar(stat="identity" , fill = "red")+
+   coord_flip() 
+
+# Histogram to show the most affected year
+Year <- data.frame(table(busData$School_Year))
+Year$Percentage_Change <- round((Year$Freq/nrow(busData))*100,digit=2)
+ggplot(Year,aes(x = reorder(Year$Var1,Year$Freq), y = Year$Percentage_Change))+
+  labs(title = "Year wise delay" , x= "Year",y= "Freq")+
+  geom_text(aes(label=Year$Percentage_Change), vjust=0)+
+  geom_bar(stat="identity" , fill = "green")
+
+
+# Histogram to show the most boro
+Boro <- data.frame(table(busData$Boro))
+Boro$Percentage_Change <- round((Boro$Freq/nrow(busData))*100,digit=2)
+ggplot(Boro,aes(x = reorder(Boro$Var1,Boro$Freq), y = Boro$Percentage_Change))+
+  labs(title = "Boro wise delay" , x= "Boro",y= "Freq")+
+  geom_bar(stat="identity" , fill = "blue")+
+   coord_flip() 
+
+# Histogram to show the breakdown or running late
+BL <- data.frame(table(busData$Breakdown_or_Running_Late))
+BL$Percentage_Change <- round((BL$Freq/nrow(busData))*100,digit=2)
+ggplot(BL,aes(x = reorder(BL$Var1,BL$Percentage_Change), y = BL$Percentage_Change))+
+  labs(title = "Breakdown Or Running late" , x= "Breakdown",y= "Freq")+
+  geom_bar(stat="identity" , fill = "purple")+
+geom_text(aes(label=BL$Percentage_Change), vjust=0)
+
+# Histogram to show minutes of delay
+minDelay <- data.frame(table(busData$How_Long_Delayed))
+ minDelay <- within(minDelay, {
+  delay <- as.numeric(as.vector.factor(minDelay$Var1))
+})
+ggplot(minDelay,aes(minDelay$Var1,minDelay$Freq ))+
+  labs(title = "Minutes of delay" , x= "Minutes of Delay",y= "Freq")+
+  geom_bar(stat="identity" , fill = "blue")+
+  coord_flip() 
+
+
+mins30 <- subset(minDelay,  minDelay$delay <=30)
+mins90 <- subset(minDelay,  minDelay$delay >30 & minDelay$delay <=90)
+mins145 <- subset(minDelay,  minDelay$delay >90 & minDelay$delay <=145)
+mins800 <- subset(minDelay,  minDelay$delay >145 & minDelay$delay <=800)
+
+minTable <- data.frame(c(sum(mins30$Freq) , sum(mins90$Freq), sum(mins145$Freq)),
+c(30,90,145))
+colnames(minTable)[1] <- "Freq"
+colnames(minTable)[2] <- "minutes"
+
+ggplot(minTable,aes(minTable$minutes,minTable$Freq ))+
+  labs(title = "Minutes of delay" , x= "Minutes of Delay",y= "Freq")+
+  geom_bar(stat="identity" , fill = "blue")+
+   coord_cartesian(xlim = c(0,30,90,145))
+
+
+# A really basic boxplot.
+ggplot(minTable, aes(x=as.factor(Freq), y=minutes)) + 
+    geom_boxplot(fill="slateblue", alpha=0.2) + 
+    xlab("Freq")
+
+# Histogram to show the contractor notified school
+notifiedSchool <- data.frame(table(busData$Has_Contractor_Notified_Schools))
+notifiedSchool$Percentage_Change <- round((notifiedSchool$Freq/nrow(busData))*100,digit=2)
+ggplot(notifiedSchool,aes(x = reorder(notifiedSchool$Var1,notifiedSchool$Freq), y = notifiedSchool$Percentage_Change))+
+ labs(title = "Contractor Notified school" , x= "YES/NO",y= "Freq")+
+  geom_bar(stat="identity" , fill = "purple")+
+geom_text(aes(label=notifiedSchool$Percentage_Change), vjust=0)
+
+# Histogram to show the contractor notified parents
+notifiedParents <- data.frame(table(busData$Has_Contractor_Notified_Parents))
+notifiedParents$Percentage_Change <- round((notifiedParents$Freq/nrow(busData))*100,digit=2)
+ggplot(notifiedParents,aes(x = reorder(notifiedParents$Var1,notifiedParents$Freq),y =notifiedParents$Percentage_Change))+
+ labs(title = "Contractor Notified Parents" , x= "YES/NO",y= "Freq")+
+  geom_bar(stat="identity" , fill = "purple")+
+geom_text(aes(label=notifiedParents$Percentage_Change), vjust=0)
+
+# Histogram to show the OPT had been alerted
+optAlerted <- data.frame(table(busData$Have_You_Alerted_OPT))
+optAlerted$Percentage_Change <- round((optAlerted$Freq/nrow(busData))*100,digit=2)
+ggplot(optAlerted,aes(x = reorder(optAlerted$Var1,optAlerted$Freq), y = optAlerted$Percentage_Change))+
+ labs(title = "OPT Alerted" , x= "YES/NO",y= "Freq")+
+  geom_bar(stat="identity" , fill = "purple")+
+  geom_text(aes(label=optAlerted$Percentage_Change), vjust=0)
+
+
+xx1 = as.integer(as.factor(busData$Breakdown_or_Running_Late))
+plot(busData$How_Long_Delayed ,xx1)
+
+
+## 1.Calculate a 95% confidence interval for the average length of delays (minutes) and interpret it in context. Note that since you’re doing inference on a single population parameter, there is no explanatory variable, so you can omit the x variable from the function.
+
+inference(y = busData$How_Long_Delayed, est = "mean", type = "ci", null = 0, conflevel = 0.95 ,
+          alternative = "twosided", method = "theoretical")
+
+##95 % Confidence interval = ( 20.6214 , 20.7633 )
+
+## I want to know , if delay time is impacted by the run type .
+## Null: H0: mu_Breakdown - mu_Running Late = 0 
+## ALT : HA: mu_Breakdown - mu_Running Late != 0 
+inference(y = busData$How_Long_Delayed, x = busData$Breakdown_or_Running_Late, est = "mean", type = "ht", null = 0,          alternative = "twosided", method = "theoretical")
+
+## our p-value 0 < 0.05 so we reject our null hypothesis meaning there is enough evidence in the data to say there is some difference in the average time delayed by buses whose running were considered breakdown and those running late.
+
+
+newData <- subset(busData, Reason == "Mechanical Problem" | Reason == "Heavy Traffic")
+inference(y=busData$How_Long_Delayed , x = busData$Reason , est="mean" ,null= 0 , alternative = "greater", type ="ht" , method="theoretical")
+
+## High F value 1158.8 , and p-value is less than 0.05 (as suggested by normal scientific standard). Hence we can conclude that for our confidence interval we reject the null hypothesis and there is convincing evidence that there is a significant relationship between delay time and reasons for delay .
+
+
+```
+
+.For the data in the NY Delay , how long delayed ,what is the sampling distribution of the mean,the overall mean , and the standard error of the mean?Is a normal distribution an appropriate assumption for the sampling distribution of the mean.
+
+```{r}
+meanTest <- round(mean(busData$How_Long_Delayed),digit=2)
+sdTest <- round(sd(busData$How_Long_Delayed),digit=2)
+
+n= length(busData$How_Long_Delayed)
+x <- p_test(95)
+zsc<- round(x, digits = 2)
+cat('zscore for ',x , ' is ' ,zsc)
+error <- round(zsc * sdTest / sqrt(n),digit =2)
+lower_vector <- meanTest -  error 
+upper_vector <- meanTest +  error
+
+summary <- c("alpha","Standarad deviation","Sample size n","sample average/mean","Confidence Interval","Error","Lower","Upper")
+values <- c("0.05",sdTest,n,meanTest,"95%",error,lower_vector,upper_vector)
+kable(data.frame(summary,values))
+
+## Hence the overall mean is 20.69  and the standard error is 0.07 . The assumption of normal distribution is appropriate when the sample is normal distribution population is sufficiently large , and thus the sampling distribution is normal .Also, the normally assumption is valid in most cases .Hence, the assumption of normal distribution is appropriate
+```
+
+```{r}
+
+m1 <- lm(How_Long_Delayed ~ Breakdown_or_Running_Late, data = busData)
+summary(m1)
+sum(m1$residuals^2) 
+plot(busData$How_Long_Delayed ,busData$Breakdown_or_Running_Late)
+abline(m1)
+ 
+## Y = how long delayed , X = Breakdown_or_Running_Late
+## Y = 0.01162 + 23.36871 * X
+## So Breakdown is 0 and running late is 1 
+## for breakdown line is  Y = 0.01162
+## for running late line is Y = 0.01162 + 23.36871 * 1 =  23.38033
+
+
+m1 <- lm(How_Long_Delayed ~ Reason, data = busData)
+summary(m1)
+sum(m1$residuals^2) 
+plot(busData$Reason , busData$How_Long_Delayed)
+
+```
+
+```{r}
+
+delayData <- busData[, c("Reason", "Boro", "How_Long_Delayed")] 
+head(delayData, 10)
+
+delayDataNoOutlier <- filter(delayData, How_Long_Delayed <= (quantile(delayData$How_Long_Delayed, 0.75) + (1.5 * IQR(delayData$How_Long_Delayed))), How_Long_Delayed >= (quantile(delayData$How_Long_Delayed, 0.25) - (1.5 * IQR(delayData$How_Long_Delayed)))) 
+modelNA <- lm(How_Long_Delayed ~ Reason + Boro, data = delayDataNoOutlier) 
+summary(modelNA)
+
+delayData <- busData[, c("Reason","Breakdown_or_Running_Late","Boro", "Bus_Company_Name", "How_Long_Delayed" ,"School_Year")] 
+head(delayData, 10)
+
+gameshare <- group_by(delayData,delayData$School_Year)
+gameshare <- summarize(gameshare,Total_Delay=sum(How_Long_Delayed))
+
+cor(gameshare$`delayData$School_Year`,gameshare$Total_Delay)
+
+modelNA <- step(lm(How_Long_Delayed ~ Reason+Breakdown_or_Running_Late+Boro+Bus_Company_Name, data = delayData),direction="both" )
+summary(modelNA)
+
+modelNA.aov <- aov(How_Long_Delayed ~ Reason+Breakdown_or_Running_Late+Boro+Bus_Company_Name, data = delayData)
+#Displaying the reidual plots
+plot(modelNA)
+#Displaying results of ANOVA analysis
+summary(modelNA.aov)
+
+
+```
+
+
+
